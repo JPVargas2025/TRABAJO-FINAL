@@ -1,5 +1,5 @@
 import sqlite3  
-     
+
 
 # Nombre del archivo de nuestra base de datos
 DB_NAME = "usuarios.db"
@@ -8,17 +8,10 @@ def inicializar_db():
     """
     Crea la base de datos y la tabla de usuarios si no existen.
     """
-    # sqlite3.connect() abre una conexión a la base de datos
-    # Si el archivo no existe, se crea automáticamente
-    # 'with' al igual que en el ejemplo de open, asegura que la conexión a la base de datos se cierre automáticamente
     with sqlite3.connect(DB_NAME) as conn:
-        
-        # El "puntero" que nos permite ejecutar comandos SQL
         cursor = conn.cursor()
         
-        # Ejecutamos un comando SQL para crear la tabla
-        # CREATE TABLE IF NOT EXISTS = "crear la tabla solo si no existe"
-        # Los comentarios en SQL empiezan con -- 
+        # tabla usuarios 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS usuarios (
                 username TEXT PRIMARY KEY,    -- Nombre de usuario (único, no se puede repetir)
@@ -27,8 +20,27 @@ def inicializar_db():
                 role TEXT NOT NULL            -- Tipo de usuario: "user", "admin", etc. (obligatorio)
             )
         ''')
+        # tabla productos
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS productos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,   -- ID único para cada producto (se incrementa automáticamente)
+                categoria TEXT,                        -- Categoría del producto (opcional)
+                nombre TEXT NOT NULL,                  -- Nombre del producto (obligatorio)
+                precio REAL NOT NULL                   -- Precio del producto (obligatorio)
+            )
+        ''')
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pedidos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario TEXT NOT NULL,
+            producto_id INTEGER NOT NULL,
+            cantidad INTEGER NOT NULL,
+            fecha TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (producto_id) REFERENCES productos(id)
+        )
+    """)
         
-        # conn.commit() guarda los cambios
         conn.commit()
 
 def registrar_usuario(usuario, contraseña, correo,tipo_usuario="user"):
@@ -65,7 +77,7 @@ def registrar_usuario(usuario, contraseña, correo,tipo_usuario="user"):
             # (porque username es PRIMARY KEY, debe ser único)
             return False
 
-def validar_usuario(usuario, contraseña, correo, tipo_usuario):
+def validar_usuario_db(usuario, contraseña, correo, tipo_usuario):
     """
     verifica si un usuario existe con todos los datos proporcionados.  
     Retorna:
@@ -92,4 +104,74 @@ def validar_usuario(usuario, contraseña, correo, tipo_usuario):
         # Si no encuentra nada, devuelve None
         # Si encuentra algo, devuelve una tupla con todos los datos del usuario
         return cursor.fetchone()
+    
 
+
+def agregar_producto_db(nombre, categoria, precio):
+   with sqlite3.connect(DB_NAME) as conn:
+    conn = conn
+    cur = conn.cursor()
+    cur.execute("INSERT INTO productos (nombre,categoria, precio) VALUES (?, ?, ?)", ( nombre, categoria, precio))
+    conn.commit()
+
+def obtener_productos_db():
+   with sqlite3.connect(DB_NAME) as conn:
+    cur = conn.cursor()
+    cur.execute("SELECT id, nombre, categoria, precio FROM productos")
+    productos = cur.fetchall()
+    return productos
+
+def buscar_producto_db(nombre):
+   with sqlite3.connect(DB_NAME) as conn:
+    cur = conn.cursor()
+    cur.execute("SELECT id, nombre, categoria, precio FROM productos WHERE nombre LIKE ?", (f"%{nombre}%",))
+    resultado = cur.fetchall()
+    return resultado
+
+def hacer_pedido_db(usuario, producto_id, cantidad):
+   """ Permite a un usuario realizar un pedido y lo registra en la base de datos.
+   Solicita el nombre del usuario, el ID del producto y la cantidad."""
+
+   with sqlite3.connect(DB_NAME) as conn:
+    cur = conn.cursor()
+    cur.execute("INSERT INTO pedidos (usuario, producto_id, cantidad) VALUES (?, ?, ?)", (usuario, producto_id, cantidad))
+    conn.commit()
+
+def obtener_pedidos_usuario(usuario):
+   with sqlite3.connect(DB_NAME) as conn:
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT p.id, pr.nombre, p.cantidad, p.fecha 
+        FROM pedidos p
+        JOIN productos pr ON p.producto_id = pr.id
+        WHERE p.usuario = ?
+        ORDER BY p.fecha DESC
+    """, (usuario,))
+    pedidos = cur.fetchall()
+    return pedidos
+   
+def obtener_usuarios():
+    """Obtiene todos los usernames de usuarios registrados"""
+    with sqlite3.connect(DB_NAME) as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT username FROM usuarios")
+        usuarios = cur.fetchall()
+        return [usuario[0] for usuario in usuarios]
+
+def obtener_estadisticas_ventas():
+    """Obtiene estadísticas de ventas por producto"""
+    with sqlite3.connect(DB_NAME) as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT 
+                pr.nombre as producto,
+                SUM(p.cantidad) as total_vendido,
+                pr.precio as precio_unitario,
+                SUM(p.cantidad * pr.precio) as total_ingresos
+            FROM pedidos p
+            JOIN productos pr ON p.producto_id = pr.id
+            GROUP BY p.producto_id, pr.nombre, pr.precio
+            ORDER BY total_vendido DESC
+        """)
+        estadisticas = cur.fetchall()
+        return estadisticas
