@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox
+from tkinter import simpledialog
 import os
-
+codigo_admin = "123456789"
 archivo_usuarios = "usuarios.txt"
 
 def lista_productos():
@@ -85,7 +86,11 @@ def abrir_registro():
         if not correo.endswith("@gmail.com"):
             messagebox.showerror("Error", "El correo debe terminar en @gmail.com")
             return
-
+        if tipo_usuario == "admin":
+            codigo_ingresado = tk.simpledialog.askstring("Código Admin", "Ingrese el código de administrador:", show="*")
+            if codigo_ingresado != codigo_admin:
+                messagebox.showerror("Error", "Código incorrecto. No se pudo registrar como administrador.")
+                return
         try:
             with open(archivo_usuarios, "a") as archivo:
                 archivo.write(f"{usuario},{contraseña},{correo},{tipo_usuario}\n")
@@ -151,10 +156,18 @@ def ingreso():
                     if tipo_usuario == "admin" and tipo_archivo == "admin":
                         messagebox.showinfo("Ingreso exitoso", f"Bienvenid@ a JESUS NAZARETH STORE, {usuario}")
                         abrir_admin_control()
+                        dato_usuario.delete(0, tk.END)
+                        dato_contraseña.delete(0, tk.END)
+                        dato_correo.delete(0, tk.END)
+                        opcion_tipo.set("Seleccionar")
                         return
                     elif tipo_usuario == "user" and tipo_archivo == "user":
                         messagebox.showinfo("Ingreso exitoso", f"Bienvenid@ a JESUS NAZARETH STORE, {usuario}")
                         abrir_user_control()
+                        dato_usuario.delete(0, tk.END)
+                        dato_contraseña.delete(0, tk.END)
+                        dato_correo.delete(0, tk.END)
+                        opcion_tipo.set("Seleccionar")
                         return
 
     messagebox.showerror("Error", "Usuario o contraseña incorrectos.")
