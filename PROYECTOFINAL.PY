@@ -1,14 +1,18 @@
-import tkinter as tk
-from tkinter import messagebox
-from tkinter import simpledialog
+#Importación de librerias necesarias para la interfaz.
 
+import tkinter as tk #importa la interfaz gráfica
+from tkinter import messagebox #Permite crear los mensajes emergentes.
+from tkinter import simpledialog #Permite crear ventanas emergentes que pidan información como las del código de admin.
+
+#Importación de funciones del archivo Backend.by
 from Backend import registrar_usuario as registrar_usuario_db
 from Backend import validar_usuario
 
-
+#Código que se necesita para el registro del perfil admin.
 codigo_admin = "123456789"
 archivo_usuarios = "usuarios.json"
 
+#Funciones de los botones de Usuario. 
 def lista_productos():
     messagebox.showinfo("Inventario", "lista_productos aún no implementada.")
 
@@ -21,27 +25,29 @@ def realizar_pedido():
 def verificar_pedido():
     messagebox.showinfo("Ventas", "verificar_pedido aún no implementada.")
 
-
+#Apertura del Menú del usuario que solicita el servicio.
 def abrir_user_control():
-    inicio.withdraw()
+    inicio.withdraw() #Oculta la ventana principal.
 
     def volver_menu():
-        user_control.destroy()
-        inicio.deiconify()
+        user_control.destroy() #Cierra el menú de usuario.
+        inicio.deiconify() #Muestra nuevamente el menú principal.
 
+    #Creación del Menú de Usuario.
     user_control = tk.Toplevel()
-    user_control.title("Menú de usuario")
-    user_control.geometry("500x600")
-    user_control.config(bg="lightblue")
-    tk.Label(user_control, text="Menú de usuario", font=("Arial", 24), bg="pink", fg="white").pack(pady=30)
+    user_control.title("Menú de usuario") #Nombre de la ventana.
+    user_control.geometry("500x600") #Tamaño de la ventana. 
+    user_control.config(bg="lightblue") #Color del fondo de la ventana.
+    tk.Label(user_control, text="Menú de usuario", font=("Arial", 24), bg="pink", fg="white").pack(pady=30) #Texto central de la ventana.
 
-    tk.Button(user_control, text="Lista de Productos", font=("Arial", 16), command=lista_productos).pack(pady=10)
-    tk.Button(user_control, text="Buscar producto", font=("Arial", 16), command=buscar_producto).pack(pady=10)
-    tk.Button(user_control, text="Realizar pedido", font=("Arial", 16), command=realizar_pedido).pack(pady=10)
-    tk.Button(user_control, text="Verificar orden", font=("Arial", 16), command=verificar_pedido).pack(pady=10)
-    tk.Button(user_control, text="Volver", font=("Arial", 16), command=volver_menu).pack(pady=5)
+#Botones del menú de Usuario.
+    tk.Button(user_control, text="Lista de Productos", font=("Arial", 16), command=lista_productos).pack(pady=10) #Comand te envia a la función lista_productos.
+    tk.Button(user_control, text="Buscar producto", font=("Arial", 16), command=buscar_producto).pack(pady=10) #Comand te envia a la función buscar_productos.
+    tk.Button(user_control, text="Realizar pedido", font=("Arial", 16), command=realizar_pedido).pack(pady=10) #Comand te envia a la función realizar_pedido.
+    tk.Button(user_control, text="Verificar orden", font=("Arial", 16), command=verificar_pedido).pack(pady=10) #Comand te envia a la función verificador_pedido.
+    tk.Button(user_control, text="Volver", font=("Arial", 16), command=volver_menu).pack(pady=5) #Este botón te saca de la ventana User. 
 
-
+#Funciones de los botones de Administrador. 
 def ingresar_inventario():
     messagebox.showinfo("Inventario", "Función ingresar_inventario aún no implementada.")
 
@@ -54,12 +60,13 @@ def revisar_orden():
 def Revisar_ventas():
     messagebox.showinfo("Ventas", "Función Revisar_ventas aún no implementada.")
 
+#Apertura del Menú del administrador para manejar el sistema.
 def abrir_admin_control():
-    inicio.withdraw()
+    inicio.withdraw() #Oculta la ventana principal.
 
     def volver_menu():
-        admin_control.destroy()
-        inicio.deiconify()
+        admin_control.destroy() #Cierra el menú de admin.
+        inicio.deiconify() #Muestra nuevamente el menú principal.
 
     admin_control = tk.Toplevel()
     admin_control.title("Menú de Administración")
