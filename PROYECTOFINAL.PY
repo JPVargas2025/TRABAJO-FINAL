@@ -41,10 +41,10 @@ def abrir_user_control():
     tk.Label(user_control, text="Menú de usuario", font=("Arial", 24), bg="pink", fg="white").pack(pady=30) #Texto central de la ventana.
 
 #Botones del menú de Usuario.
-    tk.Button(user_control, text="Lista de Productos", font=("Arial", 16), command=lista_productos).pack(pady=10) #Comand te envia a la función lista_productos.
-    tk.Button(user_control, text="Buscar producto", font=("Arial", 16), command=buscar_producto).pack(pady=10) #Comand te envia a la función buscar_productos.
-    tk.Button(user_control, text="Realizar pedido", font=("Arial", 16), command=realizar_pedido).pack(pady=10) #Comand te envia a la función realizar_pedido.
-    tk.Button(user_control, text="Verificar orden", font=("Arial", 16), command=verificar_pedido).pack(pady=10) #Comand te envia a la función verificador_pedido.
+    tk.Button(user_control, text="Lista de Productos", font=("Arial", 16), command=lista_productos).pack(pady=10) #Estos son los botones y Comand te envia a la función donde necesitas validar la funcionalidad del botón.
+    tk.Button(user_control, text="Buscar producto", font=("Arial", 16), command=buscar_producto).pack(pady=10) 
+    tk.Button(user_control, text="Realizar pedido", font=("Arial", 16), command=realizar_pedido).pack(pady=10) 
+    tk.Button(user_control, text="Verificar orden", font=("Arial", 16), command=verificar_pedido).pack(pady=10) 
     tk.Button(user_control, text="Volver", font=("Arial", 16), command=volver_menu).pack(pady=5) #Este botón te saca de la ventana User. 
 
 #Funciones de los botones de Administrador. 
@@ -63,11 +63,12 @@ def Revisar_ventas():
 #Apertura del Menú del administrador para manejar el sistema.
 def abrir_admin_control():
     inicio.withdraw() #Oculta la ventana principal.
-
+    
     def volver_menu():
         admin_control.destroy() #Cierra el menú de admin.
         inicio.deiconify() #Muestra nuevamente el menú principal.
 
+    #Creación del Menú de administrador.
     admin_control = tk.Toplevel()
     admin_control.title("Menú de Administración")
     admin_control.geometry("500x600")
@@ -80,25 +81,25 @@ def abrir_admin_control():
     tk.Button(admin_control, text="Revisar Ventas", font=("Arial", 16), command=Revisar_ventas).pack(pady=10)
     tk.Button(admin_control, text="Volver", font=("Arial", 16), command=volver_menu).pack(pady=5)
 
-def registrar_usuario(usuario=None, contraseña=None, correo=None, tipo_usuario="user"):
+def registrar_usuario(usuario=None, contraseña=None, correo=None, tipo_usuario="user"): #Valida si hay o no un usuario con esas caracteristicas.
     """
-    Registra un nuevo usuario en la base de datos.
-    Si el usuario ya existe, muestra un mensaje de error.
+    Registra un nuevo usuario en la base de datos. #Registro de usuario.
+    Si el usuario ya existe, muestra un mensaje de error. #Usuario existente.
     """
     if not registrar_usuario_db(usuario, contraseña, correo, tipo_usuario):
-        messagebox.showerror("Error", "El nombre de usuario ya existe. Por favor elija otro.")
+        messagebox.showerror("Error", "El nombre de usuario ya existe. Por favor elija otro.") #Mensaje emergente donde aparece un mensaje con el error. 
         return False
     return True
 
-
+# Función para iniciar sesión
 def iniciar_sesion(usuario=None, contraseña=None, correo=None, tipo_usuario=None):
-    user_data = validar_usuario(usuario, contraseña, correo, tipo_usuario)
+    user_data = validar_usuario(usuario, contraseña, correo, tipo_usuario) # Llama a una función externa (del Backend) para validar si el usuario existe y es correcto.
     if user_data:
-        return user_data[0], user_data[3]  
-    return None, None
+        return user_data[0], user_data[3]  # Devuelve el nombre de usuario y el tipo de usuario (admin o user)
+    return None, None  # Si no se valida, devuelve valores nulos
 
-
-def abrir_registro():
+# Función que abre la ventana para registrar un nuevo usuario.
+def abrir_registro(): 
     inicio.withdraw()
 
     def registrar_usuario_gui():
