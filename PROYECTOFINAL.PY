@@ -1,25 +1,58 @@
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import simpledialog
+from tkinter import filedialog
+import pandas as pd
 
 from Backend import registrar_usuario as registrar_usuario_db
-from Backend import validar_usuario
+from Backend import validar_usuario_db,obtener_productos_db,buscar_producto_db,hacer_pedido_db
+from Backend import obtener_usuarios,agregar_producto_db,obtener_pedidos_usuario
+
+
+
 
 
 codigo_admin = "123456789"
 archivo_usuarios = "usuarios.json"
+USUARIO_ACTUAL = None
 
+#--------------------Funciones de usuario--------------------
 def lista_productos():
-    messagebox.showinfo("Inventario", "lista_productos aún no implementada.")
+    productos = obtener_productos_db()
+    texto = "\n".join([f" Nombre: {p[1]} Categoria: {p[2]} Precio: ${p[3]}" for p in productos])
+    messagebox.showinfo("Lista de Productos", texto or "No hay productos registrados.")
 
 def buscar_producto():
-    messagebox.showinfo("Inventario", "buscar_producto aún no implementada.")
+    nombre = simpledialog.askstring("Buscar", "Nombre del producto:")
+    if nombre:
+        resultados = buscar_producto_db(nombre)
+        if resultados:
+            texto = "\n".join([f"{p[0]} - {p[1]}: ${p[3]}" for p in resultados])
+            messagebox.showinfo("Resultado", texto)
+        else:
+            messagebox.showinfo("Sin resultados", "No se encontró el producto.")
+
 
 def realizar_pedido():
-    messagebox.showinfo("Órdenes", "realizar_pedido aún no implementada.")
+    producto_id = simpledialog.askinteger("Pedido", "ID del producto:")
+    cantidad = simpledialog.askinteger("Cantidad", "¿Cuántos desea?")
+    if producto_id and cantidad:
+        try:
+            hacer_pedido_db(USUARIO_ACTUAL, producto_id, cantidad)
+            messagebox.showinfo("Pedido", "Pedido realizado con éxito.")
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo realizar el pedido.\n{e}")
 
 def verificar_pedido():
-    messagebox.showinfo("Ventas", "verificar_pedido aún no implementada.")
+    pedidos = obtener_pedidos_usuario(USUARIO_ACTUAL)
+    if pedidos:
+        texto = "\n".join([f"#{p[0]} - {p[1]} x{p[2]} el {p[3]}" for p in pedidos])
+        messagebox.showinfo("Tus Pedidos", texto)
+    else:
+        messagebox.showinfo("Sin pedidos", "No tienes pedidos registrados.")
+
+#--------------------Funciones de usuario--------------------
+
 
 
 def abrir_user_control():
@@ -41,18 +74,188 @@ def abrir_user_control():
     tk.Button(user_control, text="Verificar orden", font=("Arial", 16), command=verificar_pedido).pack(pady=10)
     tk.Button(user_control, text="Volver", font=("Arial", 16), command=volver_menu).pack(pady=5)
 
-
+#--------------------Funciones de administrador--------------------
 def ingresar_inventario():
-    messagebox.showinfo("Inventario", "Función ingresar_inventario aún no implementada.")
+    categorias = ['Ropa', 'Zapatos', 'Cremas', 'Lociones', 'Accesorios', 'Otros']
+    
+    ventana = tk.Toplevel()
+    ventana.title("Ingresar producto al inventario")
+    ventana.geometry("400x300")
+    ventana.config(bg="lightblue")
+
+    tk.Label(ventana, text="Categoría", font=("Arial", 14), bg="lightblue").pack(pady=5)
+    categoria_var = tk.StringVar()
+    categoria_var.set(categorias[0])
+    tk.OptionMenu(ventana, categoria_var, *categorias).pack()
+
+    tk.Label(ventana, text="Nombre del producto", font=("Arial", 14), bg="lightblue").pack(pady=5)
+    nombre_entry = tk.Entry(ventana, font=("Arial", 14))
+    nombre_entry.pack()
+
+    tk.Label(ventana, text="Precio", font=("Arial", 14), bg="lightblue").pack(pady=5)
+    precio_entry = tk.Entry(ventana, font=("Arial", 14))
+    precio_entry.pack()
+
+    def guardar():
+        categoria = categoria_var.get()
+        nombre = nombre_entry.get()
+        try:
+            precio = float(precio_entry.get())
+        except ValueError:
+            messagebox.showerror("Error", "El precio debe ser un número.")
+            return
+
+        if not nombre:
+            messagebox.showerror("Error", "El nombre no puede estar vacío.")
+            return
+
+        agregar_producto_db(nombre,categoria, precio)
+        messagebox.showinfo("Éxito", f"Producto '{nombre}' guardado.")
+        ventana.destroy()
+
+    tk.Button(ventana, text="Guardar producto", font=("Arial", 14), command=guardar).pack(pady=10)
+
 
 def verificar_inventario():
-    messagebox.showinfo("Inventario", "Función verificar_inventario aún no implementada.")
+    """Exporta el inventario completo a un archivo Excel"""
+    try:
+        productos = obtener_productos_db()
+        
+        if not productos:
+            messagebox.showinfo("Sin datos", "No hay productos en el inventario.")
+            return
+        
+        # Crear DataFrame con los datos
+        df = pd.DataFrame(productos, columns=['ID', 'Nombre', 'Categoría', 'Precio'])
+        
+        # Abrir diálogo para guardar archivo
+        archivo = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+            title="Guardar inventario como..."
+        )
+        
+        if archivo:
+            # Guardar en Excel
+            df.to_excel(archivo, index=False, sheet_name='Inventario')
+            messagebox.showinfo("Éxito", f"Inventario exportado a: {archivo}")
+        
+    except Exception as e:
+        messagebox.showerror("Error", f"No se pudo exportar el inventario.\n{e}")
 
 def revisar_orden():
-    messagebox.showinfo("Órdenes", "Función revisar_orden aún no implementada.")
+    """Permite revisar órdenes de un usuario específico usando dropdown"""
+    try:
+
+
+        
+        usuarios = obtener_usuarios()
+        
+        if not usuarios:
+            messagebox.showinfo("Sin usuarios", "No hay usuarios registrados.")
+            return
+        
+        # Crear ventana para seleccionar usuario
+        ventana = tk.Toplevel()
+        ventana.title("Revisar Órdenes de Usuario")
+        ventana.geometry("400x200")
+        ventana.config(bg="lightblue")
+        
+        tk.Label(ventana, text="Seleccionar Usuario", font=("Arial", 16), bg="lightblue").pack(pady=10)
+        
+        usuario_var = tk.StringVar()
+        usuario_var.set("Seleccionar usuario")
+        dropdown = tk.OptionMenu(ventana, usuario_var, *usuarios)
+        dropdown.config(font=("Arial", 14))
+        dropdown.pack(pady=10)
+        
+        def mostrar_ordenes():
+            usuario_seleccionado = usuario_var.get()
+            if usuario_seleccionado == "Seleccionar usuario":
+                messagebox.showerror("Error", "Por favor selecciona un usuario.")
+                return
+            
+            pedidos = obtener_pedidos_usuario(usuario_seleccionado)
+            
+            if pedidos:
+                texto = f"Órdenes de {usuario_seleccionado}:\n\n"
+                total_pedidos = 0
+                for p in pedidos:
+                    texto += f"#{p[0]} - {p[1]} x{p[2]} el {p[3]}\n"
+                    total_pedidos += 1
+                texto += f"\nTotal de pedidos: {total_pedidos}"
+                
+                # Crear ventana para mostrar resultados
+                resultado = tk.Toplevel()
+                resultado.title(f"Órdenes de {usuario_seleccionado}")
+                resultado.geometry("500x400")
+                resultado.config(bg="white")
+                
+                text_widget = tk.Text(resultado, font=("Arial", 12), wrap=tk.WORD)
+                text_widget.pack(expand=True, fill='both', padx=10, pady=10)
+                text_widget.insert('1.0', texto)
+                text_widget.config(state='disabled')
+                
+                ventana.destroy()
+            else:
+                messagebox.showinfo("Sin pedidos", f"El usuario {usuario_seleccionado} no tiene pedidos registrados.")
+        
+        tk.Button(ventana, text="Ver Órdenes", font=("Arial", 14), command=mostrar_ordenes).pack(pady=20)
+        
+    except Exception as e:
+        messagebox.showerror("Error", f"No se pudieron cargar los usuarios.\n{e}")
 
 def Revisar_ventas():
-    messagebox.showinfo("Ventas", "Función Revisar_ventas aún no implementada.")
+    """Exporta estadísticas de ventas a un archivo Excel"""
+    try:
+        # Importar la función adicional del backend
+        from Backend import obtener_estadisticas_ventas
+        
+        estadisticas = obtener_estadisticas_ventas()
+        
+        if not estadisticas:
+            messagebox.showinfo("Sin datos", "No hay ventas registradas.")
+            return
+        
+        # Crear DataFrame con las estadísticas
+        df = pd.DataFrame(estadisticas, columns=[
+            'Producto', 
+            'Cantidad Vendida', 
+            'Precio Unitario', 
+            'Total Ingresos'
+        ])
+        
+        # Agregar fila de totales
+        total_cantidad = df['Cantidad Vendida'].sum()
+        total_ingresos = df['Total Ingresos'].sum()
+        
+        # Crear fila de totales
+        fila_total = pd.DataFrame({
+            'Producto': ['TOTAL'],
+            'Cantidad Vendida': [total_cantidad],
+            'Precio Unitario': [''],
+            'Total Ingresos': [total_ingresos]
+        })
+        
+        df = pd.concat([df, fila_total], ignore_index=True)
+        
+        # Abrir diálogo para guardar archivo
+        archivo = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+            title="Guardar reporte de ventas como..."
+        )
+        
+        if archivo:
+            # Guardar en Excel
+            df.to_excel(archivo, index=False, sheet_name='Reporte de Ventas')
+            messagebox.showinfo("Éxito", f"Reporte de ventas exportado a: {archivo}")
+        
+    except Exception as e:
+        messagebox.showerror("Error", f"No se pudo exportar el reporte de ventas.\n{e}")
+
+#--------------------Funciones de administrador--------------------
+
 
 def abrir_admin_control():
     inicio.withdraw()
@@ -77,6 +280,9 @@ def registrar_usuario(usuario=None, contraseña=None, correo=None, tipo_usuario=
     """
     Registra un nuevo usuario en la base de datos.
     Si el usuario ya existe, muestra un mensaje de error.
+    Retorna:
+    bool: True si el registro fue exitoso,False si el usuario ya existe.
+    
     """
     if not registrar_usuario_db(usuario, contraseña, correo, tipo_usuario):
         messagebox.showerror("Error", "El nombre de usuario ya existe. Por favor elija otro.")
@@ -85,8 +291,15 @@ def registrar_usuario(usuario=None, contraseña=None, correo=None, tipo_usuario=
 
 
 def iniciar_sesion(usuario=None, contraseña=None, correo=None, tipo_usuario=None):
-    user_data = validar_usuario(usuario, contraseña, correo, tipo_usuario)
+    """
+    Valida las credenciales del usuario en la base de datos.
+    Retorna el nombre de usuario y el rol si las credenciales son correctas,
+    o None si son incorrectas.
+    """
+    user_data = validar_usuario_db(usuario, contraseña, correo, tipo_usuario)
     if user_data:
+        global USUARIO_ACTUAL
+        USUARIO_ACTUAL = user_data[0]
         return user_data[0], user_data[3]  
     return None, None
 
