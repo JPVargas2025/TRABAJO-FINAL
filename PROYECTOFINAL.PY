@@ -1,9 +1,13 @@
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import simpledialog
-import os
+
+from Backend import registrar_usuario as registrar_usuario_db
+from Backend import validar_usuario
+
+
 codigo_admin = "123456789"
-archivo_usuarios = "usuarios.txt"
+archivo_usuarios = "usuarios.json"
 
 def lista_productos():
     messagebox.showinfo("Inventario", "lista_productos aún no implementada.")
@@ -17,7 +21,7 @@ def realizar_pedido():
 def verificar_pedido():
     messagebox.showinfo("Ventas", "verificar_pedido aún no implementada.")
 
-# Ventana de control admin
+
 def abrir_user_control():
     inicio.withdraw()
 
@@ -69,11 +73,28 @@ def abrir_admin_control():
     tk.Button(admin_control, text="Revisar Ventas", font=("Arial", 16), command=Revisar_ventas).pack(pady=10)
     tk.Button(admin_control, text="Volver", font=("Arial", 16), command=volver_menu).pack(pady=5)
 
+def registrar_usuario(usuario=None, contraseña=None, correo=None, tipo_usuario="user"):
+    """
+    Registra un nuevo usuario en la base de datos.
+    Si el usuario ya existe, muestra un mensaje de error.
+    """
+    if not registrar_usuario_db(usuario, contraseña, correo, tipo_usuario):
+        messagebox.showerror("Error", "El nombre de usuario ya existe. Por favor elija otro.")
+        return False
+    return True
+
+
+def iniciar_sesion(usuario=None, contraseña=None, correo=None, tipo_usuario=None):
+    user_data = validar_usuario(usuario, contraseña, correo, tipo_usuario)
+    if user_data:
+        return user_data[0], user_data[3]  
+    return None, None
+
 
 def abrir_registro():
     inicio.withdraw()
 
-    def registrar_usuario():
+    def registrar_usuario_gui():
         usuario = dato_usuario.get()
         contraseña = dato_contraseña.get()
         correo = dato_correo.get()
@@ -86,19 +107,18 @@ def abrir_registro():
         if not correo.endswith("@gmail.com"):
             messagebox.showerror("Error", "El correo debe terminar en @gmail.com")
             return
+        
+       
         if tipo_usuario == "admin":
-            codigo_ingresado = tk.simpledialog.askstring("Código Admin", "Ingrese el código de administrador:", show="*")
+            codigo_ingresado = simpledialog.askstring("Código Admin", "Ingrese el código de administrador:", show="*")
             if codigo_ingresado != codigo_admin:
                 messagebox.showerror("Error", "Código incorrecto. No se pudo registrar como administrador.")
                 return
-        try:
-            with open(archivo_usuarios, "a") as archivo:
-                archivo.write(f"{usuario},{contraseña},{correo},{tipo_usuario}\n")
+
+        if registrar_usuario(usuario, contraseña, correo, tipo_usuario):
             messagebox.showinfo("Registro exitoso", "Su usuario ha sido registrado exitosamente")
             registro.destroy()
             inicio.deiconify()
-        except Exception as e:
-            messagebox.showerror("Error", f"No se pudo guardar el usuario: {e}")
 
     def volver_inicio():
         registro.destroy()
@@ -130,8 +150,9 @@ def abrir_registro():
     opciones.config(font=("Arial", 14))
     opciones.pack()
 
-    tk.Button(registro, text="Registrar", font=("Arial", 16), command=registrar_usuario).pack(pady=10)
+    tk.Button(registro, text="Registrar", font=("Arial", 16), command=registrar_usuario_gui).pack(pady=10)
     tk.Button(registro, text="Volver", font=("Arial", 16), command=volver_inicio).pack(pady=5)
+
 
 def ingreso():
     usuario = dato_usuario.get()
@@ -143,34 +164,27 @@ def ingreso():
         messagebox.showerror("Error", "Por favor, completa todos los campos.")
         return
 
-    if not os.path.exists(archivo_usuarios):
-        messagebox.showerror("Error", "No hay usuarios registrados.")
-        return
-
-    with open(archivo_usuarios, "r") as archivo:
-        for linea in archivo:
-            datos = linea.strip().split(",")
-            if len(datos) >= 4:
-                usuario_archivo, contraseña_archivo, correo_archivo, tipo_archivo = datos
-                if usuario == usuario_archivo and contraseña == contraseña_archivo and correo == correo_archivo:
-                    if tipo_usuario == "admin" and tipo_archivo == "admin":
-                        messagebox.showinfo("Ingreso exitoso", f"Bienvenid@ a JESUS NAZARETH STORE, {usuario}")
-                        abrir_admin_control()
-                        dato_usuario.delete(0, tk.END)
-                        dato_contraseña.delete(0, tk.END)
-                        dato_correo.delete(0, tk.END)
-                        opcion_tipo.set("Seleccionar")
-                        return
-                    elif tipo_usuario == "user" and tipo_archivo == "user":
-                        messagebox.showinfo("Ingreso exitoso", f"Bienvenid@ a JESUS NAZARETH STORE, {usuario}")
-                        abrir_user_control()
-                        dato_usuario.delete(0, tk.END)
-                        dato_contraseña.delete(0, tk.END)
-                        dato_correo.delete(0, tk.END)
-                        opcion_tipo.set("Seleccionar")
-                        return
-
-    messagebox.showerror("Error", "Usuario o contraseña incorrectos.")
+    usuario_validado, rol = iniciar_sesion(usuario, contraseña, correo, tipo_usuario)
+    
+    if usuario_validado:
+        if rol == "admin":
+            messagebox.showinfo("Ingreso exitoso", f"Bienvenid@ a JESUS NAZARETH STORE, {usuario}")
+            abrir_admin_control()
+           
+            dato_usuario.delete(0, tk.END)
+            dato_contraseña.delete(0, tk.END)
+            dato_correo.delete(0, tk.END)
+            opcion_tipo.set("Seleccionar")
+        elif rol == "user":
+            messagebox.showinfo("Ingreso exitoso", f"Bienvenid@ a JESUS NAZARETH STORE, {usuario}")
+            abrir_user_control()
+            
+            dato_usuario.delete(0, tk.END)
+            dato_contraseña.delete(0, tk.END)
+            dato_correo.delete(0, tk.END)
+            opcion_tipo.set("Seleccionar")
+    else:
+        messagebox.showerror("Error", "Usuario o contraseña incorrectos.")
 
 def salir():
     if messagebox.askyesno("Salir", "¿Desea salir del sistema?"):
